@@ -131,9 +131,11 @@
       }
 
       try {
+        // Conectar la wallet
         const response = await window.solana.connect();
         connectedPublicKey = response.publicKey;
 
+        // Esperar la confirmación de la conexión
         const balance = await getWalletBalance(connectedPublicKey);
 
         if (balance < 0) {
